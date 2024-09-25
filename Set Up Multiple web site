@@ -1,0 +1,139 @@
+Step 1 Setup the network
+
+sudo ufw enable
+sudo ufw allow http
+sudo ufw allow https
+sudo ufw reload
+
+Check if everything okay give
+sudo ufw status
+
+use this command to accept http request
+sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+
+Now Add Cloudflare IP Ranges
+
+sudo ufw allow from 173.245.48.0/20
+sudo ufw allow from 103.21.244.0/22
+sudo ufw allow from 103.22.200.0/22
+sudo ufw allow from 103.31.4.0/22
+sudo ufw allow from 141.101.64.0/18
+sudo ufw allow from 108.162.192.0/18
+sudo ufw allow from 190.93.240.0/20
+sudo ufw allow from 188.114.96.0/20
+sudo ufw allow from 197.234.240.0/22
+sudo ufw allow from 198.41.128.0/17
+sudo ufw allow from 162.158.0.0/15
+sudo ufw allow from 104.16.0.0/12
+sudo ufw allow from 172.64.0.0/13
+sudo ufw allow from 131.0.72.0/22
+sudo ufw reload
+
+
+Step 2
+sudo apt install apache2
+sudo apt install php libapache2-mod-php php-mysql
+sudo apt install mysql-server 
+
+Step 2
+
+sudo mkdir -p /var/www/site1.com/public_html
+sudo mkdir -p /var/www/site2.com/public_html
+
+Step 3
+sudo chown -R $USER:$USER /var/www/site1.com/public_html
+sudo chown -R $USER:$USER /var/www/site2.com/public_html
+sudo chmod -R 755 /var/www
+
+Step 4
+
+echo "<html><head><title>Site 1</title></head><body><h1>Welcome to Site 1</h1></body></html>" > /var/www/site1.com/public_html/index.html
+echo "<html><head><title>Site 2</title></head><body><h1>Welcome to Site 2</h1></body></html>" > /var/www/site2.com/public_html/index.html
+
+
+Step 5
+
+sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/site1.com.conf
+sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/site2.com.conf
+
+
+Step 6
+
+sudo nano /etc/apache2/sites-available/site1.com.conf
+
+<VirtualHost *:80>
+    ServerAdmin admin@site1.com
+    ServerName site1.com
+    ServerAlias www.site1.com
+    DocumentRoot /var/www/site1.com/public_html
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+Do the same for site2.com.conf:
+
+sudo nano /etc/apache2/sites-available/site2.com.conf
+
+<VirtualHost *:80>
+    ServerAdmin admin@site2.com
+    ServerName site2.com
+    ServerAlias www.site2.com
+    DocumentRoot /var/www/site2.com/public_html
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+Step 7: Enable the New Virtual Hosts
+
+sudo a2ensite site1.com.conf
+sudo a2ensite site2.com.conf
+sudo systemctl restart apache2
+
+Step 8: Install WordPress for Each Site
+
+wget https://wordpress.org/latest.tar.gz
+tar -xzvf latest.tar.gz
+sudo mv wordpress/* /var/www/site1.com/public_html/
+
+Do it again for site2
+
+wget https://wordpress.org/latest.tar.gz
+tar -xzvf latest.tar.gz
+sudo mv wordpress/* /var/www/site2.com/public_html/
+
+Step 9: Create Databases and Users for Each Site
+
+sudo mysql -u root -p
+it will ask password give enter to move on 
+
+inside mysql
+
+CREATE DATABASE site1_db;
+CREATE USER 'site1_user'@'localhost' IDENTIFIED BY 'password1';
+GRANT ALL PRIVILEGES ON site1_db.* TO 'site1_user'@'localhost';
+FLUSH PRIVILEGES;
+
+CREATE DATABASE site2_db;
+CREATE USER 'site2_user'@'localhost' IDENTIFIED BY 'password2';
+GRANT ALL PRIVILEGES ON site2_db.* TO 'site2_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+
+Step 10: Command to restart/reload apache server
+sudo systemctl restart apache2
+OR
+sudo systemctl reload apache2
+
+Now your site will work on http protocol to browse on https you need to set up ssl. Before setup ssl you need to setup dns record
+on cloudflare. To setup dns record cloudflare take help from youtube.
+
+Step 11: Install certbot for ssl
+
+sudo apt-get update
+sudo apt install certbot python3-certbot-apache
+sudo certbot --apache
+
+That's it now you can access your wp site on your browser though the https://yourdomain.com
+
+Thanks your reading.
